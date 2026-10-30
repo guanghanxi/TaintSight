@@ -1,6 +1,6 @@
-# VulDetectAgent
+# TaintSight
 
-VulDetectAgent is a multi-agent pipeline for static vulnerability detection in Java
+TaintSight is a multi-agent pipeline for static vulnerability detection in Java
 projects. Given a target project's source tree and a prebuilt CodeQL database, it uses
 LLM agents to derive taint specifications (sources, sinks and propagation steps), turns
 those specifications into CodeQL queries, and runs a final taint analysis whose findings
