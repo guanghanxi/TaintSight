@@ -1,0 +1,33 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Generated analysis artifacts
+outputs/
+work_dir/
+logs/
+symbol_index/
+*.log
+*.sarif
+*.bqrs
+*.csv
+# The experimental dataset under data/ is source-controlled.
+!data/*.csv
+*.db
+*.sqlite
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/

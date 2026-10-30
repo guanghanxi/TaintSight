@@ -1,0 +1,45 @@
+## Compile/execution error feedback (structured diagnosis)
+
+Your predicate failed during the **{{ stage_label }}** stage. The system has preprocessed the raw CodeQL error into the structured diagnosis below:
+line numbers have been mapped back to lines in **your own code** (not the wrapper script), and irrelevant noise such as paths has been stripped.
+
+{% if diagnosis.api_errors %}
+### (1) APIs that do not exist on the given type ({{ diagnosis.api_errors|length }} occurrences)
+{% for e in diagnosis.api_errors %}
+- line {{ e.line if e.line else "?" }}: `{{ e.name }}` <- you assumed it belongs to `{{ e.type }}`, but that type has no such API
+{% endfor %}
+{% endif %}
+{% if diagnosis.type_errors %}
+### (2) Unresolvable type names ({{ diagnosis.type_errors|length }} occurrences)
+{% for e in diagnosis.type_errors %}
+- line {{ e.line if e.line else "?" }}: `{{ e.name }}`
+{% endfor %}
+{% endif %}
+{% if diagnosis.syntax_errors %}
+### (3) Syntax / parse errors ({{ diagnosis.syntax_errors|length }} occurrences)
+{% for e in diagnosis.syntax_errors %}
+- line {{ e.line if e.line else "?" }}: {{ e.text }}
+{% endfor %}
+{% endif %}
+{% if diagnosis.other_errors %}
+### (4) Other compile errors ({{ diagnosis.other_errors|length }} occurrences)
+{% for e in diagnosis.other_errors %}
+- line {{ e.line if e.line else "?" }}: {{ e.text }}
+{% endfor %}
+{% endif %}
+{% if diagnosis.hints %}
+### (5) Definite correction guidance (verify each item before editing)
+{% for hint in diagnosis.hints %}
+{{ loop.index }}. {{ hint }}
+{% endfor %}
+{% endif %}
+
+### Editing discipline (required)
+1. **Fix only the errors listed above**; do not rewrite logic that did not report an error -- keep the parts that worked in the previous version unchanged.
+2. **Never probe a sequence of similar API names.** The system has given definite corrections for the names you got wrong; if an error above has **no** exact correction,
+   the name was invented. Go back to the experience summary and find a method that the type **actually provides**, or use an equivalent form with a complete template
+   from the experience summary. Do not guess naming patterns (e.g. changing `getXxxName()` to `getXxx()` and then `getXyz()`) by trial and error.
+3. For any API you are unsure about, degrade to the conservative form: prefer call combinations that already appear in the experience summary and avoid unverified expressions.
+4. After fixing, re-output the **complete** predicate code block.
+
+{% include 'partials/output_format.jinja2' %}

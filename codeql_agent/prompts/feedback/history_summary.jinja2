@@ -1,0 +1,12 @@
+## Previous attempts (do not repeat these errors)
+
+{% for record in older_records %}
+### Round {{ record.round_num }}
+```codeql
+{{ record.predicate_code }}
+```
+**Error type**: {{ record.failure_type }}
+**Error summary**: {{ record.error_summary }}
+
+{% endfor %}
+Based on these lessons, avoid repeating the same direction of error and regenerate the complete predicate code.

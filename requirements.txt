@@ -1,0 +1,19 @@
+# Third-party dependencies imported by VulDetectAgent.
+# Starting point only: versions are intentionally unpinned. Pin them to the versions
+# you validate against before relying on this file for reproducible environments.
+
+langchain
+langchain-core
+langchain-anthropic
+langchain-deepseek
+langchain-openai
+langchain-qwq
+langgraph
+jinja2
+pandas
+pydantic
+python-dotenv
+httpx
+
+# Non-Python requirement: the CodeQL CLI (Java query pack) must be installed
+# separately, either on PATH or via CODEQL_BIN.

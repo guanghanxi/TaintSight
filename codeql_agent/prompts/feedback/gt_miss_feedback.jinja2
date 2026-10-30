@@ -1,0 +1,35 @@
+## Ground Truth not hit
+Your predicate returned non-empty results but did not hit the file paths specified in the Ground Truth.
+
+Expected file paths:
+{% for p in expected_paths %}
+- {{ p }}
+{% endfor %}
+
+Actual matched node locations (partial):
+{% for loc in matched_locations[:10] %}
+- {{ loc }}
+{% endfor %}
+
+{% if matched_code_snippets %}
+Source code of the matched nodes:
+```java
+{% for snippet in matched_code_snippets[:5] %}
+{{ snippet }}
+{% endfor %}
+```
+{% endif %}
+
+### Analyze first; do not rush to change code
+- **Declaration-side / call-side asymmetry**: GT shows declaration-side code (a method definition) while your rule matches the call side (or vice versa). When the specification explicitly requires call-side matching, this "miss" is **correct behavior**, not an error.
+- Check whether file_path differs because of inner classes, anonymous classes, etc.
+- Check whether the matching conditions are too strict and miss the GT example.
+
+### Truth principle (decision rule)
+- **The specification (matching_description / security_reason) is the sole basis for matching logic; Ground Truth is supporting validation material only.**
+- If your rule faithfully implements the specification and only differs from the GT example's semantic location (declaration side vs call side), or the GT example is marked as illustration only:
+  **do not change the matching logic just to hit GT** -- deviating from the specification is worse than missing GT. Keep the current rule and output it unchanged (the system has a degraded-acceptance mechanism for "correct but missing" rules).
+- Modify the rule only if review shows that it **itself deviates from the specification**, or that it has a CodeQL technical error (wrong strategy, void binding, over-strict naming, etc.).
+
+Analyze, then output the complete predicate code block.
+{% include 'partials/output_format.jinja2' %}

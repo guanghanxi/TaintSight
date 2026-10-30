@@ -1,0 +1,50 @@
+## Specification
+- **Role**: {{ spec.role }}
+- **Description**: {{ spec.description }}
+- **Security Reason**: {{ spec.security_reason }}
+- **Pattern Type**: {{ spec.node_pattern.pattern_type }}
+{% if spec.node_pattern.pattern_type == 'custom_logic' %}
+- **Matching Intent**: {{ spec.node_pattern.matching_intent }}
+- **CodeQL Hint**: {{ spec.node_pattern.codeql_generation_hint }}
+{% if spec.node_pattern.builtin_codeql_rule %}
+- **Builtin Rule**: {{ spec.node_pattern.builtin_codeql_rule }}
+{% endif %}
+{% else %}
+- **Matching Description**: {{ spec.node_pattern.matching_description }}
+{% endif %}
+
+## Ground Truth code examples
+> Examples marked "illustration only, not a validation target" only help you understand the target semantics (e.g. method declarations, library implementations, synthetic examples). The matching logic must still follow the specification, and your query results are **not required** to hit these examples.
+{% for ex in spec.ground_truth_examples %}
+### Example {{ loop.index }} ({{ "real project code" if ex.is_from_project else "synthetic example" }}{% if ex.purpose | default('validation') == 'illustration' %} | illustration only, not a validation target{% endif %}{% if ex.file_path %} | file: {{ ex.file_path }}{% endif %})
+```java
+{{ ex.code_snippet | join('\n') }}
+```
+Explanation: {{ ex.explanation }}
+{% endfor %}
+
+## Generation task
+Generate a CodeQL predicate with the signature:
+```codeql
+predicate {{ predicate_name }}(DataFlow::Node node)
+```
+
+Requirements:
+1. The predicate matches the node pattern described in the specification (pattern_type: {{ spec.node_pattern.pattern_type }}).
+2. Choose the correct AST matching form for the pattern_type (numbers refer to sections of the experience summary in the System Prompt):
+   - parameter -> node.asParameter()  (1.1)
+   - argument  -> node.asExpr() = call.getArgument(i)  (1.2)
+   - field     -> node.asExpr() = field.getAnAccess()  (1.5)
+   - return_value -> node.asExpr() = returnStmt.getExpr()  (1.3)
+   - receiver  -> node.asExpr() = callExpr  (1.4)
+   - custom_logic -> implement freely according to matching_intent
+3. For matching the class that owns the method, use the decision tree in "1.0 Class matching strategy for the call side (overview)" and choose by the target method's characteristics:
+   Default strategy A (`getCallee().getDeclaringType().getSourceDeclaration()`);
+   use strategy B (`.getASourceSupertype*()`) when all implementations of an interface/abstract class must be covered;
+   use strategy C (`getQualifier().getType()`) when the caller's static type must be constrained (not valid for static methods).
+4. WARNING for void methods: in receiver mode, if the target method returns void, the call expression is not a data-flow node and `node.asExpr() = callExpr` silently fails; bind its arguments or qualifier instead (see the void note in section 1.0).
+5. Output only the predicate code block; do not include import or select statements.
+
+Generate the complete predicate code.
+
+{% include 'partials/output_format.jinja2' %}

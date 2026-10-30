@@ -1,0 +1,6 @@
+## Output format requirements (strictly enforced)
+1. **Output exactly one CodeQL code block**, wrapped in ```codeql.
+2. **Never** output explanatory text, prefacing remarks, summaries, analysis, or extra comments.
+3. **Never** include `import`, `select`, `from`, or `where` statements (the system wraps the query).
+4. The predicate signature must match the task requirements exactly; do not rename the predicate.
+5. Output the code block directly; do not add lead-ins such as "Here is the generated code".

@@ -1,0 +1,26 @@
+## Empty result
+Your predicate ran against the target project but the query returned no results (no node matched).
+Re-examine the specification and the Ground Truth examples; check the following categories:
+
+### Naming and qualification
+- Is a class or method name misspelled or over-qualified?
+- Are the argument indexes correct?
+- Did you omit getSourceDeclaration(), letting generics or proxy classes interfere?
+- Did you mix up the declaration side and the call side?
+
+### Class matching strategy (see the decision tree in experience summary 1.0)
+- Did you use getQualifier().getType() (strategy C) for a **static method**?
+  Strategy C does not work for static methods; use strategy A instead: getCallee().getDeclaringType().
+- Is the target method defined in an interface/abstract class while you matched only the declaring class, missing all implementations/overrides?
+  Consider the getASourceSupertype*() transitive closure (strategy B).
+
+### Data-flow node binding (see the void note in experience summary 1.0)
+- Did you bind `node.asExpr() = <call expression>` for a call to a **void method**?
+  A void call is not a data-flow node, so the binding silently fails; bind its arguments or qualifier instead.
+
+### Missing target
+- The API described by the specification may not exist in the target project at all, or may exist under a different name.
+  You may relax moderately with fuzzy or batch matching (matches / regexpMatch / in), but the relaxation must stay faithful to the specification's semantics; never match unrelated code just to make the result non-empty.
+
+After fixing, re-output the complete predicate code block.
+{% include 'partials/output_format.jinja2' %}

@@ -1,0 +1,70 @@
+{% set unbound = diagnostics.get('unbound') or [] %}
+{% set reason = diagnostics.get('reason', '') %}
+{% set count = diagnostics.get('result_count', 0) %}
+{% set method_count = diagnostics.get('project_method_count', 0) %}
+{% set ratio = diagnostics.get('method_ratio') %}
+{% set node_vars = diagnostics.get('node_vars') or [] %}
+{% set is_unbound = reason == 'unbound_node' %}
+## Abnormal match scope (rewrite {{ retry_index }} of at most {{ max_retries }})
+
+Your predicate (role: `{{ spec.role }}`) **matches far too much**: this query matched **{{ count }}** nodes
+{%- if method_count %}, while the target project has {{ method_count }} Java methods{% if ratio is not none %} (about {{ '%.0f'|format(ratio * 100) }}%){% endif %}{% endif %}.
+{%- if project_api_call_count %} (Reference: the project index contains about {{ project_api_call_count }} API calls.){% endif %}
+
+An over-broad scope directly inflates the result set and path count of the final taint analysis, so it must be narrowed while **preserving the specification semantics**.
+
+{% if is_unbound and unbound %}
+### BLOCKING DEFECT: a disjunct leaves node variables unconstrained
+
+The following disjuncts **do not constrain the node variables at all** (variables this role must constrain: {{ node_vars }}):
+
+{% for u in unbound %}
+- Branch where variable `{{ u.var }}` is unconstrained:
+  ```codeql
+  {{ u.branch }}
+  ```
+{% endfor %}
+
+**Cause (CodeQL operator precedence)**: `and` binds tighter than `or`, so
+
+```codeql
+A and B or C and D     // actually parsed as (A and B) or (C and D)
+```
+
+As soon as **one** disjunct does not bind the node variable, the whole predicate holds for **every node in the program**, and the match set explodes from single digits to hundreds of thousands.
+
+**Correct forms (choose one)**:
+
+```codeql
+// Form 1: make the node binding a conjunct alongside all matching conditions (parenthesize the or groups)
+predicate is_x(DataFlow::Node node) {
+  (condA and condB) or (condC and condD)
+  and node.asExpr() = <expression to bind>     // <- node binding is a sibling conjunct, outside the or groups
+}
+
+// Form 2: bind the node separately in each disjunct
+predicate is_x(DataFlow::Node node) {
+  (condA and node.asExpr() = e1) or (condB and node.asExpr() = e2)
+}
+```
+
+**This is a proof of a defect, not a heuristic warning**: the system will not accept such a rule in degraded mode; it must be fixed.
+{% elif not is_unbound %}
+### Two likely causes of over-breadth
+
+1. **Cartesian product of large endpoints**: if a matching condition alone covers many nodes (e.g. an over-broad type test, an empty `exists`),
+   the result set grows multiplicatively with the number of endpoints. Check whether a qualifying dimension is missing (concrete API name, concrete type, concrete argument position, etc.).
+2. **Under-constrained `exists`**: if an `exists(...)` only tests a type and does not **bind that type back to the node variable**,
+   the scope also becomes unbounded. Make sure every `exists` really constrains the value of the node variable.
+{% endif %}
+
+### Truth principle (decision rule)
+- **The specification (matching_description / security_reason) is the sole basis for matching logic.**
+- If review confirms that the rule **should** match at this scale (the specification really is that broad),
+  **do not delete mechanism dimensions just to reduce the count** (e.g. removing a necessary API qualifier, or degrading an `equals` to a type test) --
+  deviating from the specification is worse than matching too broadly.
+  In that case, **re-output the current predicate unchanged**: the system has a **marked-acceptance mechanism** for "faithful but over-broad" rules.
+- However, if the blocking defect above applies, the rule cannot be "faithful": the predicate does not constrain the node and must be fixed.
+
+Analyze, then output the complete predicate code block.
+{% include 'partials/output_format.jinja2' %}

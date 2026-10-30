@@ -1,0 +1,39 @@
+## Specification
+- **Role**: {{ spec.role }}
+- **Description**: {{ spec.description }}
+- **Security Reason**: {{ spec.security_reason }}
+- **Matching Description**: {{ spec.matching_description }}
+- **Mapping Type**: {{ spec.mapping_type }}
+{% if spec.source_arg_index is not none %}
+- **Source Arg Index**: {{ spec.source_arg_index }}
+{% endif %}
+{% if spec.target_arg_index is not none %}
+- **Target Arg Index**: {{ spec.target_arg_index }}
+{% endif %}
+
+## Ground Truth code examples
+> Examples marked "illustration only, not a validation target" only help you understand the target semantics (e.g. method declarations, library implementations, synthetic examples). The matching logic must still follow the specification, and your query results are **not required** to hit these examples.
+{% for ex in spec.ground_truth_examples %}
+### Example {{ loop.index }} ({{ "real project code" if ex.is_from_project else "synthetic example" }}{% if ex.purpose | default('validation') == 'illustration' %} | illustration only, not a validation target{% endif %}{% if ex.file_path %} | file: {{ ex.file_path }}{% endif %})
+```java
+{{ ex.code_snippet | join('\n') }}
+```
+Explanation: {{ ex.explanation }}
+{% endfor %}
+
+predicate {{ predicate_name }}(Call c)
+```
+
+Requirements:
+1. The predicate matches the method call site described in the specification; the signature is fixed as `(Call c)`.
+2. For matching the class that owns the method, use the decision tree in "1.0 Class matching strategy for the call side (overview)" of the CodeQL experience summary in the System Prompt, choosing by the target method's characteristics:
+   - default strategy A (`c.getCallee().getDeclaringType().getSourceDeclaration()`), suitable for static methods and exact matching of JDK/framework APIs;
+   - when the target method is defined in an interface/abstract class and all implementations/overrides must be covered, use strategy B (the `.getASourceSupertype*()` transitive closure);
+   - only when the caller's static type (rather than the method definition site) must be constrained, use strategy C (`c.getQualifier().getType()`), noting that it does not work for static methods.
+3. Use the standard template in section "2.1.1 Summary propagation (method-level black box)" of the experience summary.
+   **Architecture split (important)**: 2.1.1 shows the full form of a propagation rule (including `n1`/`n2` data-flow node bindings);
+   at this stage you only generate the **Call matching part** (method name, owning class, necessary argument/qualifier features).
+   This specification's mapping_type is `{{ spec.mapping_type }}`; the corresponding propagation logic is injected deterministically by the system during assembly. Do **not** write any `DataFlow::Node`, `n1`, or `n2` logic in this predicate.
+4. Output only the predicate code block; do not include import or select statements.
+
+{% include 'partials/output_format.jinja2' %}

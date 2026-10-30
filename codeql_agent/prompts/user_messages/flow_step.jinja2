@@ -1,0 +1,33 @@
+## Specification
+- **Role**: {{ spec.role }}
+- **Description**: {{ spec.description }}
+- **Security Reason**: {{ spec.security_reason }}
+- **Matching Intent**: {{ spec.pattern.matching_intent }}
+- **CodeQL Hint**: {{ spec.pattern.codeql_generation_hint }}
+
+## Ground Truth code examples
+> Examples marked "illustration only, not a validation target" only help you understand the target semantics (e.g. method declarations, library implementations, synthetic examples). The matching logic must still follow the specification, and your query results are **not required** to hit these examples.
+{% for ex in spec.ground_truth_examples %}
+### Example {{ loop.index }} ({{ "real project code" if ex.is_from_project else "synthetic example" }}{% if ex.purpose | default('validation') == 'illustration' %} | illustration only, not a validation target{% endif %}{% if ex.file_path %} | file: {{ ex.file_path }}{% endif %})
+```java
+{{ ex.code_snippet | join('\n') }}
+```
+Explanation: {{ ex.explanation }}
+{% endfor %}
+
+## Generation task
+Generate a CodeQL predicate with the signature:
+```codeql
+predicate {{ predicate_name }}(DataFlow::Node node1, DataFlow::Node node2)
+```
+
+Requirements:
+1. The predicate matches a non-standard data-flow propagation edge described in the specification (node1 is the inflow point, node2 the outflow point).
+2. Use the template in section "2.1.2 State/container/field propagation (cross-method, instance binding)" of the CodeQL experience summary in the System Prompt.
+3. If the propagation involves cross-method global state (e.g. ThreadLocal, static fields, custom container reads and writes), bind through semantic entities (Field, method declarations, etc.);
+   **never compare Qualifier ASTs directly** (e.g. `putCall.getQualifier() = getCall.getQualifier()` is always false).
+4. Output only the predicate code block; do not include import or select statements.
+
+Generate the complete predicate code.
+
+{% include 'partials/output_format.jinja2' %}
